@@ -1,0 +1,57 @@
+import requests
+from bs4 import BeautifulSoup
+import sqlite3
+
+URL = 'https://misis.ru/university/struktura-universiteta/instituty/'
+
+def get_html(url):
+    r = requests.get(url)
+    return r.text
+def write_db(title, titleadd, addr, person):
+    con = sqlite3.connect('base.sqlite3')
+    cur = con.cursor()
+    cur.execute('''CREATE TABLE IF NOT EXISTS list_data(title_data TEXT, titleadd_data TEXT, addr_data TEXT, person_data TEXT) ''')
+    cur.execute('''INSERT INTO list_data VALUES(?, ?, ?, ?)''', [title, titleadd, addr, person])
+    con.commit()
+    cur.close()
+    con.close()
+def get_page_data(html):
+    soup = BeautifulSoup(html, 'lxml')
+    films = soup.find('div', class_='cols-flex').find_all('div', class_='col2_aspect')
+    for film in films:
+        try:
+            title = film.find(class_='institute-item-head').find('h3').text.strip()
+
+        except:
+            title = ''
+
+        try:
+            titleadd = film.find(class_='institute-item-head').find('p').text.strip()
+        except:
+            titleadd = ''
+
+        try:
+            addr = film.find('div', class_='institute-item-head').find_all('p')[-1].text.strip()
+        except:
+            addr = ''
+        try:
+            person = film.find('div', class_='person').find('div', class_='person__name').text.strip()
+        except:
+            person = ''
+        data = {'title': title,
+                'titleadd': titleadd,
+                'addr': addr,
+                'person': person}
+        write_db(data['title'], data['titleadd'], data['addr'], data['person'])
+
+
+
+def request_to_db():
+    """connects to database, makes users requests"""
+    con = sqlite3.connect("base.sqlite3")
+    cur = con.cursor()
+    sql = "select person_data from list_data  where  title_data = 'ЭУПП'"
+    print("Рез-т запроса:")
+    for row in cur.execute(sql):
+        print(row)
+request_to_db()
